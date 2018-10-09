@@ -4,7 +4,7 @@ COPY . /build
 WORKDIR /build
 RUN mvn versions:set -DnewVersion=docker; mvn clean package
 
-FROM sonatype/nexus3:3.11.0
+FROM sonatype/nexus3:3.13.0
 USER root
 RUN mkdir -p /opt/sonatype/nexus/system/it/marcoreni/nexus3-bitbucketcloud-auth-plugin/docker/
 COPY --from=builder /build/target/nexus3-bitbucketcloud-auth-plugin-docker.jar /opt/sonatype/nexus/system/it/marcoreni/nexus3-bitbucketcloud-auth-plugin/docker/
