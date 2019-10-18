@@ -44,29 +44,31 @@ public class BitbucketApiClient {
     @Inject
     public BitbucketApiClient(BitbucketAuthConfiguration configuration) {
         this.configuration = configuration;
+        init();
     }
 
-    @PostConstruct
     public void init() {
+        LOGGER.info("Initializing BitBucket API client");
         client = HttpClientBuilder.create().build();
         initPrincipalCache();
     }
 
     private void initPrincipalCache() {
         tokenToPrincipalCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(configuration.getPrincipalCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
-                .build();
+            .expireAfterWrite(configuration.getPrincipalCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
+            .build();
     }
 
     public BitbucketCloudPrincipal authz(String login, char[] password) throws BitbucketAuthenticationException {
-        // Combine the login and the password as the cache key since they are both used to generate the principal. If either changes we should obtain a new
-        // principal.
+        // Combine the login and the password as the cache key since they are both used to generate the principal.
+        // If either changes we should obtain a new principal.
         String cacheKey = login + "|" + new String(password);
-        BitbucketCloudPrincipal cached = tokenToPrincipalCache.getIfPresent(cacheKey);
+        BitbucketCloudPrincipal cached = (tokenToPrincipalCache != null) ? tokenToPrincipalCache.getIfPresent(cacheKey) : null;
         if (cached != null) {
-            LOGGER.debug("Using cached principal for login: {}", login);
+            LOGGER.info("Using cached principal for login: '{}'", login);
             return cached;
         } else {
+            LOGGER.info("Doing BitBucket API authentication for login: '{}'", login);
             BitbucketCloudPrincipal principal = doAuthz(login, password);
             tokenToPrincipalCache.put(cacheKey, principal);
             return principal;
@@ -74,55 +76,37 @@ public class BitbucketApiClient {
     }
 
     private BitbucketCloudPrincipal doAuthz(String loginName, char[] password) throws BitbucketAuthenticationException {
-        BitbucketUser user = retrieveBitbucketUser(loginName, password);
         BitbucketCloudPrincipal principal = new BitbucketCloudPrincipal();
-
-        principal.setUsername(user.getUsername());
+        principal.setUsername(retrieveBitbucketUser(loginName, password).getUsername());
         principal.setTeams(retrieveBitbucketTeams(loginName, password));
-
         return principal;
     }
 
-
     private BitbucketUser retrieveBitbucketUser(String loginName, char[] password) throws BitbucketAuthenticationException {
-        return getAndSerializeObject(configuration.getBitbucketApiUserUrl(), loginName, password,
-            BitbucketUser.class);
+        return getAndSerializeObject(configuration.getBitbucketApiUserUrl(), loginName, password, BitbucketUser.class);
     }
 
     private Set<String> retrieveBitbucketTeams(String loginName, char[] password) throws BitbucketAuthenticationException  {
         try {
-            BitbucketTeamsResponse response = getAndSerializeObject(configuration.getBitbucketUserTeamsUrl(), loginName,
-                password, BitbucketTeamsResponse.class);
+            BitbucketTeamsResponse response = getAndSerializeObject(configuration.getBitbucketUserTeamsUrl(), loginName, password, BitbucketTeamsResponse.class);
             return response.getValues().stream().map(team -> team.getTeam().getUsername() + ":" + team.getPermission()).collect(Collectors.toSet());
         } catch (Exception e) {
             throw new BitbucketAuthenticationException(e);
         }
     }
 
-
     private BasicHeader constructBitbucketAuthorizationHeader(String username, char[] password) {
         String encoding = Base64.getEncoder().encodeToString((username + ":" + new String(password)).getBytes());
         return new BasicHeader("Authorization", "Basic " + encoding);
     }
 
-    private <T> T getAndSerializeObject(String uri, String username, char[] password, Class<T> clazz) throws BitbucketAuthenticationException {
-        try {
-            String reader = executeGet(uri, username, password);
-            return new Gson().fromJson(reader, clazz);
-        } catch (Exception e) {
-            throw new BitbucketAuthenticationException(e);
-        }
-    }
-
     private String executeGet(String uri, String username, char[] password) throws BitbucketAuthenticationException {
         HttpGet request = new HttpGet(uri);
-
         request.addHeader(constructBitbucketAuthorizationHeader(username, password));
         try {
             HttpResponse response = client.execute(request);
             if (response.getStatusLine().getStatusCode() != 200) {
-                LOGGER.warn("Authentication failed, status code was {}",
-                        response.getStatusLine().getStatusCode());
+                LOGGER.warn("Authentication failed, status code was: {}", response.getStatusLine().getStatusCode());
                 request.releaseConnection();
                 throw new BitbucketAuthenticationException("Authentication failed.");
             }
@@ -131,7 +115,15 @@ public class BitbucketApiClient {
             request.releaseConnection();
             throw new BitbucketAuthenticationException(e);
         }
-
     }
 
+    private <T> T getAndSerializeObject(String uri, String username, char[] password, Class<T> clazz) throws BitbucketAuthenticationException {
+        try {
+            String reader = executeGet(uri, username, password);
+            LOGGER.debug("getAndSerializeObject: {} => {}", uri, reader);
+            return new Gson().fromJson(reader, clazz);
+        } catch (Exception e) {
+            throw new BitbucketAuthenticationException(e);
+        }
+    }
 }

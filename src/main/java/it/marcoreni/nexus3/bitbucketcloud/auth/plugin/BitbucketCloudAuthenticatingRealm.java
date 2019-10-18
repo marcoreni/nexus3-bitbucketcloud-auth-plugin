@@ -34,14 +34,16 @@ import javax.inject.Singleton;
 @Named
 @Description("Bitbucket Cloud Authentication Realm")
 public class BitbucketCloudAuthenticatingRealm extends AuthorizingRealm {
-	private BitbucketApiClient githubClient;
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BitbucketCloudAuthenticatingRealm.class);
 	public static final String NAME = BitbucketCloudAuthenticatingRealm.class.getName();
 
+	private BitbucketApiClient bitbucketClient;
+
+
 	@Inject
-	public BitbucketCloudAuthenticatingRealm(BitbucketApiClient githubClient) {
-		this.githubClient = githubClient;
+	public BitbucketCloudAuthenticatingRealm(BitbucketApiClient bitbucketClient) {
+		this.bitbucketClient = bitbucketClient;
 	}
 
 	/*
@@ -62,45 +64,41 @@ public class BitbucketCloudAuthenticatingRealm extends AuthorizingRealm {
 	@Override
 	protected void onInit() {
 		super.onInit();
-		LOGGER.info("Bitbucket Authentication Realm initialized");
+		LOGGER.info("Bitbucket Cloud Authentication Realm initialized");
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * org.apache.shiro.realm.AuthorizingRealm#doGetAuthorizationInfo(org.apache
-	 * .shiro.subject.PrincipalCollection)
+	 * @see org.apache.shiro.realm.AuthorizingRealm#doGetAuthorizationInfo(org.apache.shiro.subject.PrincipalCollection)
 	 */
 	@Override
 	protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
 		BitbucketCloudPrincipal user = (BitbucketCloudPrincipal) principals.getPrimaryPrincipal();
-		LOGGER.info("doGetAuthorizationInfo for user {} with roles {}", user.getUsername(), String.join(",", user.getTeams()));
+		LOGGER.info("doGetAuthorizationInfo for username '{}' with roles '{}'", user.getUsername(), String.join(",", user.getTeams()));
 		return new SimpleAuthorizationInfo(user.getTeams());
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * org.apache.shiro.realm.AuthenticatingRealm#doGetAuthenticationInfo(org.
-	 * apache.shiro.authc.AuthenticationToken)
+	 * @see org.apache.shiro.realm.AuthenticatingRealm#doGetAuthenticationInfo(org.apache.shiro.authc.AuthenticationToken)
 	 */
 	@Override
 	protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
 		if (!(token instanceof UsernamePasswordToken)) {
-			throw new UnsupportedTokenException(String.format("Token of type %s  is not supported. A %s is required.",
-					token.getClass().getName(), UsernamePasswordToken.class.getName()));
+			throw new UnsupportedTokenException(String.format("Token of type '%s' is not supported. A '%s' is required.",
+				token.getClass().getName(), UsernamePasswordToken.class.getName()));
 		}
 
 		UsernamePasswordToken t = (UsernamePasswordToken) token;
-		LOGGER.info("doGetAuthenticationInfo for {}", ((UsernamePasswordToken) token).getUsername());
+		LOGGER.info("doGetAuthenticationInfo for username: '{}'", t.getUsername());
 		BitbucketCloudPrincipal authenticatedPrincipal;
 		try {
-			authenticatedPrincipal = githubClient.authz(t.getUsername(), t.getPassword());
-			LOGGER.info("Successfully authenticated {}",t.getUsername());
+			authenticatedPrincipal = bitbucketClient.authz(t.getUsername(), t.getPassword());
+			LOGGER.info("Successfull authentication for username: '{}'", t.getUsername());
 		} catch (BitbucketAuthenticationException e) {
-			LOGGER.warn("Failed authentication", e);
+			LOGGER.warn("Failed authentication for username: '{}'", e);
 			return null;
 		}
 

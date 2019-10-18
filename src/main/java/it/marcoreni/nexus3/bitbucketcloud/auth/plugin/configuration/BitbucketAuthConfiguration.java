@@ -28,6 +28,7 @@ public class BitbucketAuthConfiguration {
     public String getBitbucketUserTeamsUrl() {
         return getBitbucketApiUrl() + BITBUCKET_API_TEAMS_URL;
     }
+
     public Duration getPrincipalCacheTtl() {
         return DEFAULT_PRINCIPAL_CACHE_TTL;
     }
