@@ -74,12 +74,12 @@ docker run --rm -it -v $(pwd):/data -w /data maven:3.5.2 mvn clean package
 You can build a ready to run docker image using the [`Dockerfile`](Dockerfile) to quickly spin up a nexus with the plugin already preinstalled:
 
 ```shell
-docker build -it rti-sonatype-nexus:3.19.1-bitbucketcloud-auth-plugin .
+docker build -t rti-sonatype-nexus:3.19.1-bitbucketcloud-auth-plugin .
 
-docker run -p 8081:8081 rti-sonatype-nexus:3.19.1-bitbucketcloud-auth-plugin
+docker run --rm -it -p 8081:8081 rti-sonatype-nexus:3.19.1-bitbucketcloud-auth-plugin
 ```
 
-to get the admin password
+To get the admin password use:
 
 ```shell
 docker exec -it <container-id> cat /nexus-data/admin.password
