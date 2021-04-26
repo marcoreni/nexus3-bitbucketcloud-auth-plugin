@@ -29,7 +29,7 @@ You need to manually create these roles in _Administration > Security > Roles > 
 
 ### 0. Prerequisites
 
-#### Directory naming convention:
+#### Directory naming convention
 
 For the following commands we assume your nexus installation resides in `/opt/sonatype/nexus`.
 
@@ -46,9 +46,9 @@ The following lines will:
 
 ```shell
 mkdir -p /opt/sonatype/nexus/system/it/marcoreni/ &&\
-wget -O /opt/sonatype/nexus/system/it/marcoreni/nexus3-bitbucketcloud-auth-plugin.zip https://github.com/marcoreni/nexus3-bitbucketcloud-auth-plugin/releases/download/1.0.1/nexus3-bitbucketcloud-auth-plugin.zip &&\
+wget -O /opt/sonatype/nexus/system/it/marcoreni/nexus3-bitbucketcloud-auth-plugin.zip https://github.com/marcoreni/nexus3-bitbucketcloud-auth-plugin/releases/download/1.0.2/nexus3-bitbucketcloud-auth-plugin.zip &&\
 unzip /opt/sonatype/nexus/system/it/marcoreni/nexus3-bitbucketcloud-auth-plugin.zip -d /opt/sonatype/nexus/system/it/marcoreni/ &&\
-echo "mvn\:it.marcoreni/nexus3-Bitbucketcloud-auth-plugin/1.0.1 = 200" >> /opt/sonatype/nexus/etc/karaf/startup.properties
+echo "mvn\:it.marcoreni/nexus3-Bitbucketcloud-auth-plugin/1.0.2 = 200" >> /opt/sonatype/nexus/etc/karaf/startup.properties
 ```
 
 ### 2. Restart Nexus
@@ -74,9 +74,9 @@ docker run --rm -it -v $(pwd):/data -w /data maven:3.5.2 mvn clean package
 You can build a ready to run docker image using the [`Dockerfile`](Dockerfile) to quickly spin up a nexus with the plugin already preinstalled:
 
 ```shell
-docker build -t rti-sonatype-nexus:3.19.1-bitbucketcloud-auth-plugin .
+docker build -t rti-sonatype-nexus3.30.1-bitbucketcloud-auth-plugin .
 
-docker run --rm -it -p 8081:8081 rti-sonatype-nexus:3.19.1-bitbucketcloud-auth-plugin
+docker run --rm -it -p 8081:8081 rti-sonatype-nexus:3.30.1-bitbucketcloud-auth-plugin
 ```
 
 To get the admin password use:
